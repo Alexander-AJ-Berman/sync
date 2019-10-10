@@ -8,7 +8,7 @@ const missingParams = (req, res, required) => {
     if (req.body == undefined) {
         return res.status(400).send({message: `Enter parameters in the request body!`});
     }
-    // Loop through body params, ensure all required
+    // Loop through body params, ensure required exist
     for (const param in req.body) {
         if (missing.includes(param)) {
             // Remove correct param from missing list

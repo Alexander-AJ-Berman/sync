@@ -2,28 +2,29 @@ const express = require('express');
 const authRouter = express.Router();
 
 const missingParams = require('../../middleware/missingParams');
+const { createUser, login } = require('./helpers');
 
-authRouter.route('/create').post((req, res) => {
+authRouter.route('/create').post(async (req, res) => {
     const required = ["username", "password"];
     if (missingParams(req, res, required)) return;
-    // Add user to database if username is unique
-    return res.status(200).send("Create");
+    
+    const { success, msg } = await createUser(req.body.username, req.body.password);
+    // Login upon account creation
+    if (success) await login(req, req.body.username, req.body.password);
+    
+    return res.status(200).send({success: success, message: msg});
 });
 
-authRouter.route('/login').post((req, res) => {
+authRouter.route('/login').post(async (req, res) => {
     const required = ["username", "password"];
     if (missingParams(req, res, required)) return;
-
-    // Initiate express session
-    return res.status(200).send("Login");
+    const success = await login(req, req.body.username, req.body.password);
+    return res.status(200).send({ message: "Successfully logged in" });
 });
 
 authRouter.route('/logout').post((req, res) => {
-    // Terminate express session
-    return res.status(200).send("Logout");
+    if (req.session.login) delete req.session.login;
+    return res.status(200).send({ message: "Successfully logged out" });
 });
-
-
-
 
 module.exports = authRouter;
