@@ -5,6 +5,7 @@ const ejs = require('ejs');
 const path = require('path');
 
 require('dotenv').config();
+app.use(express.json());
 
 const port = process.env.PORT || 3000;
 
