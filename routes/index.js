@@ -9,6 +9,7 @@ const spotifyApi = new SpotifyWebApi({
 });
 
 const { requestSpotifyAccessToken } = require('./helpers');
+const { retrievePlaybackData, playTrack } = require('./playbackHelpers/playbackHelpers');
 
 /**
  * Displays Home page
@@ -23,12 +24,16 @@ pageRouter.route('/').get(async (req, res) => {
  * ~~ Documentation for appendable :roomNumber that post login will redirect you immediately to a room
  */
 pageRouter.route('/login').get((req, res) => {
-    var scopes = 'streaming user-read-private user-read-email user-modify-playback-state user-read-playback-state';
-    res.redirect('https://accounts.spotify.com/authorize' +
-        '?response_type=code' +
-        '&client_id=f4ca4128f708491c89428d8ac63afcac' +
-        (scopes ? '&scope=' + encodeURIComponent(scopes) : '') +
-        '&redirect_uri=' + encodeURIComponent(process.env.REDIRECT_URI));
+    try {
+        var scopes = 'streaming user-read-private user-read-email user-modify-playback-state user-read-playback-state';
+        res.redirect('https://accounts.spotify.com/authorize' +
+            '?response_type=code' +
+            '&client_id=f4ca4128f708491c89428d8ac63afcac' +
+            (scopes ? '&scope=' + encodeURIComponent(scopes) : '') +
+            '&redirect_uri=' + encodeURIComponent(process.env.REDIRECT_URI));
+    } catch (err) {
+        console.log(err);
+    }
 });
 
 /**
@@ -51,20 +56,17 @@ pageRouter.route('/removeAuth').get((req, res) => {
 });
 
 /**
- * Experimenting with Spotify api requests
+ * Whenever you navigate to /spotify, your access token is used to formulate a request
  */
 pageRouter.route('/spotify').get(async (req, res) => {
-    if (req.session.access_token) {
-        spotifyApi.setAccessToken(req.session.access_token);
-        const response = await spotifyApi.getMyCurrentPlaybackState();
-        // await spotifyApi.play({
-        //     context_uri: 'spotify:artist:3WrFJ7ztbogyGnTHbHJFl2',
-        //     track_number: 6
-        // });
-        console.log(response.body.item.name);
-        return res.send(response.body.item);
-    } else {
-        return res.send("not authenticated");
+    try {
+        // Retrieve host access token and use it to get host playback
+        const host = await retrievePlaybackData(spotifyApi, req.session.access_token); // TODO: Change this to host's access token
+        const result = await playTrack(spotifyApi, req.session.access_token, host.trackUri, host.trackNum, 0);
+        console.log(result);
+        return res.status(200).send(result);
+    } catch (err) {
+        console.log(err);
     }
 });
 

@@ -30,7 +30,6 @@ const requestSpotifyAccessToken = async (req, code) => {
     }
 }
 
-
 module.exports = {
-    requestSpotifyAccessToken
+    requestSpotifyAccessToken,
 }
