@@ -15,7 +15,7 @@ const createUser = async (username, password) => {
     // Creates and stores user
     const user = new User({
         username: username,
-        passwordHash: await hashPassword(password),
+        passwordHash: await hashPassword(password), 
         dateCreated: new Date(Date.now())
     });
     await user.save();
