@@ -61,7 +61,7 @@ pageRouter.route('/removeAuth').get((req, res) => {
 pageRouter.route('/spotify').get(async (req, res) => {
     try {
         // Retrieve host access token and use it to get host playback
-        const host = await retrievePlaybackData(spotifyApi, req.session.access_token); // TODO: Change this to host's access token
+        const host = await retrievePlaybackData(spotifyApi, process.env.HOST_ACCESS_TOKEN); // TODO: Change this to host's access token
         const result = await playTrack(spotifyApi, req.session.access_token, host.trackUri, host.trackNum, 0);
         console.log(result);
         return res.status(200).send(result);

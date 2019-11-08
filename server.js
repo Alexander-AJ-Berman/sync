@@ -3,7 +3,7 @@ const app = express();
 
 // Import dependencies
 const ejs = require('ejs');
-const path = require('path');
+const path = require('path'); 
 const mongoose = require('mongoose');
 const session = require('express-session');
 

@@ -21,6 +21,7 @@ const requestSpotifyAccessToken = async (req, code) => {
         const response = await axios.post('https://accounts.spotify.com/api/token', formData, options);
         // Store access_token and refresh_token in session
         req.session.access_token = response.data.access_token;
+        console.log(req.session.access_token);
         req.session.refresh_token = response.data.refresh_token;
         return true;
 
