@@ -11,6 +11,9 @@ const spotifyApi = new SpotifyWebApi({
 const { requestSpotifyAccessToken } = require('./helpers');
 const { retrievePlaybackData, playTrack } = require('./playbackHelpers/playbackHelpers');
 
+// Maps host names to host Spotify access token and user access tokens
+let hostTokenMap = {};
+
 /**
  * Displays Home page
  */
@@ -20,11 +23,15 @@ pageRouter.route('/').get(async (req, res) => {
 
 /**
  * Renders Spotify OAuth widget. Following authentication, user is direction to the /callback route
- * (!) ensure redirect URI is whitelisted on Spotify Dashboard
+ * (!) ensure redirect URI is  whitelisted on Spotify Dashboard
  * ~~ Documentation for appendable :roomNumber that post login will redirect you immediately to a room
  */
-pageRouter.route('/login').get((req, res) => {
+pageRouter.route('/login/:hostName').get((req, res) => {
     try {
+        // TODO: Middleware to require hostName, set is Host to false by default
+        req.session.hostName = req.params.hostName; // Host's display name
+
+        // Spotify API code, redirects to Oauth
         var scopes = 'streaming user-read-private user-read-email user-modify-playback-state user-read-playback-state';
         res.redirect('https://accounts.spotify.com/authorize' +
             '?response_type=code' +
@@ -41,9 +48,20 @@ pageRouter.route('/login').get((req, res) => {
  */
 pageRouter.route('/callback').get(async (req, res) => {
     const code = req.query.code;
-    // Requests Spotify access, storing credentials in session ID
+    // Requests Spotify access, storing credentials in session
     const status = await requestSpotifyAccessToken(req, code);
-    if (!status) return res.status(400).send("Error getting Spotify access.");
+    
+    const isHost = req.session.hostName in hostTokenMap ? false : true;
+    // Sets host's access token as token for the room if host
+    if (isHost) {
+        hostTokenMap[req.session.hostName] = {};
+        hostTokenMap[req.session.hostName].hostToken = req.session.access_token;
+        hostTokenMap[req.session.hostName].userTokens = [];
+    }
+    // Adds user's token to the host's token list if guest
+    else {
+        hostTokenMap[req.session.hostName].userTokens.push(req.session.access_token);
+    }
     return res.redirect('/spotify');
 });
 
@@ -51,8 +69,7 @@ pageRouter.route('/callback').get(async (req, res) => {
  * Development route to remove Spotify auth, effectively logging user out.
  */
 pageRouter.route('/removeAuth').get((req, res) => {
-    delete req.session.access_token;
-    delete req.session.refresh_token;
+    delete req.session;
 });
 
 /**
@@ -61,8 +78,9 @@ pageRouter.route('/removeAuth').get((req, res) => {
 pageRouter.route('/spotify').get(async (req, res) => {
     try {
         // Retrieve host access token and use it to get host playback
-        const host = await retrievePlaybackData(spotifyApi, process.env.HOST_ACCESS_TOKEN); // TODO: Change this to host's access token
-        const result = await playTrack(spotifyApi, req.session.access_token, host.trackUri, host.trackNum, 0);
+        const host = await retrievePlaybackData(spotifyApi, hostTokenMap[req.session.hostName].hostToken);
+        // TODO: change to guest's spotify token
+        const result = await playTrack(spotifyApi, hostTokenMap[req.session.hostName].hostToken, host.trackUri, host.trackNum, host.trackTime);
         console.log(result);
         return res.status(200).send(result);
     } catch (err) {
