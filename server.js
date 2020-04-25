@@ -1,7 +1,7 @@
 const express = require('express');
 const app = express();
 
-// Import dependencies
+// Import dependencies 
 const ejs = require('ejs');
 const path = require('path'); 
 const mongoose = require('mongoose');
